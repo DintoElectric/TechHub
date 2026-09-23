@@ -50,6 +50,29 @@
           <h1>Dinto Technologies</h1>
           <p class="hub-subtitle" id="hubSubtitle"></p>
         </div>
+
+        <div class="widgets-row">
+          <div class="widget-card weather-widget">
+            <h3>Weather</h3>
+            <form id="weatherForm" class="weather-form">
+              <input class="input" id="weatherZipInput" name="zip" placeholder="Zip code" maxlength="5" inputmode="numeric" pattern="[0-9]{5}">
+              <button class="btn btn-ghost" type="submit">Go</button>
+            </form>
+            <div id="weatherDisplay" class="weather-display"></div>
+            <p class="form-error" id="weatherError" hidden></p>
+          </div>
+
+          <div class="widget-card calendar-widget">
+            <div class="calendar-header">
+              <button class="btn btn-ghost btn-icon" id="calendarPrevBtn" aria-label="Previous month">‹</button>
+              <h3 id="calendarLabel"></h3>
+              <button class="btn btn-ghost btn-icon" id="calendarNextBtn" aria-label="Next month">›</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+            <div class="calendar-day-panel" id="calendarDayPanel"></div>
+          </div>
+        </div>
+
         <div class="app-grid" id="appGrid"></div>
       </section>
 
