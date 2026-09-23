@@ -35,6 +35,17 @@
   const previewFrame = document.getElementById('previewFrame');
   const previewCloseBtn = document.getElementById('previewCloseBtn');
 
+  const weatherForm = document.getElementById('weatherForm');
+  const weatherZipInput = document.getElementById('weatherZipInput');
+  const weatherDisplay = document.getElementById('weatherDisplay');
+  const weatherError = document.getElementById('weatherError');
+
+  const calendarPrevBtn = document.getElementById('calendarPrevBtn');
+  const calendarNextBtn = document.getElementById('calendarNextBtn');
+  const calendarLabel = document.getElementById('calendarLabel');
+  const calendarGrid = document.getElementById('calendarGrid');
+  const calendarDayPanel = document.getElementById('calendarDayPanel');
+
   // ---- State ----
   let apps = [];
   let role = null; // null | 'viewer' | 'admin'
@@ -42,6 +53,14 @@
   let publicMode = false; // true once the user hits "continue without signing in"
   let hoverTimer = null;
   let openIndex = null;
+
+  const WEATHER_ZIP_KEY = 'dinto_hub_weather_zip';
+  const DEFAULT_ZIP = '06762';
+
+  let calendarEvents = [];
+  const today = new Date();
+  let calendarViewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selectedDateStr = toDateStr(today);
 
   // ---- API helpers ----
   async function api(path, options = {}) {
@@ -329,6 +348,214 @@
     }
   });
 
+  // ---- Weather widget ----
+  const WEATHER_CODES = {
+    0: ['Clear sky', '☀️'],
+    1: ['Mainly clear', '🌤️'],
+    2: ['Partly cloudy', '⛅'],
+    3: ['Overcast', '☁️'],
+    45: ['Fog', '🌫️'], 48: ['Fog', '🌫️'],
+    51: ['Light drizzle', '🌦️'], 53: ['Drizzle', '🌦️'], 55: ['Dense drizzle', '🌦️'],
+    56: ['Freezing drizzle', '🌧️'], 57: ['Freezing drizzle', '🌧️'],
+    61: ['Light rain', '🌧️'], 63: ['Rain', '🌧️'], 65: ['Heavy rain', '🌧️'],
+    66: ['Freezing rain', '🌧️'], 67: ['Freezing rain', '🌧️'],
+    71: ['Light snow', '❄️'], 73: ['Snow', '❄️'], 75: ['Heavy snow', '❄️'],
+    77: ['Snow grains', '❄️'],
+    80: ['Rain showers', '🌦️'], 81: ['Rain showers', '🌦️'], 82: ['Violent showers', '🌧️'],
+    85: ['Snow showers', '🌨️'], 86: ['Snow showers', '🌨️'],
+    95: ['Thunderstorm', '⛈️'], 96: ['Thunderstorm w/ hail', '⛈️'], 99: ['Thunderstorm w/ hail', '⛈️'],
+  };
+
+  async function fetchWeatherForZip(zip) {
+    const geoRes = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    if (!geoRes.ok) throw new Error('Zip code not found');
+    const geo = await geoRes.json();
+    const place = geo.places && geo.places[0];
+    if (!place) throw new Error('Zip code not found');
+    const lat = place.latitude;
+    const lon = place.longitude;
+    const wRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`
+    );
+    if (!wRes.ok) throw new Error('Weather lookup failed');
+    const wData = await wRes.json();
+    const code = wData.current.weather_code;
+    const [label, icon] = WEATHER_CODES[code] || ['—', '🌡️'];
+    return {
+      place: `${place['place name']}, ${place['state abbreviation']}`,
+      temp: Math.round(wData.current.temperature_2m),
+      label,
+      icon,
+    };
+  }
+
+  async function loadWeather(zip) {
+    weatherError.hidden = true;
+    weatherDisplay.innerHTML = '<span class="text-muted">Loading…</span>';
+    try {
+      const w = await fetchWeatherForZip(zip);
+      weatherDisplay.innerHTML = `
+        <span class="weather-icon">${w.icon}</span>
+        <div class="weather-meta">
+          <span class="weather-temp">${w.temp}°F</span>
+          <span class="weather-desc">${w.label}</span>
+          <span class="weather-place">${w.place}</span>
+        </div>
+      `;
+    } catch (err) {
+      weatherDisplay.innerHTML = '';
+      weatherError.textContent = err.message;
+      weatherError.hidden = false;
+    }
+  }
+
+  function initWeather() {
+    const savedZip = localStorage.getItem(WEATHER_ZIP_KEY) || DEFAULT_ZIP;
+    weatherZipInput.value = savedZip;
+    loadWeather(savedZip);
+  }
+
+  weatherForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const zip = weatherZipInput.value.trim() || DEFAULT_ZIP;
+    if (!/^\d{5}$/.test(zip)) {
+      weatherError.textContent = 'Enter a 5-digit zip code';
+      weatherError.hidden = false;
+      return;
+    }
+    localStorage.setItem(WEATHER_ZIP_KEY, zip);
+    loadWeather(zip);
+  });
+
+  // ---- Calendar widget ----
+  function toDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  async function loadCalendarEvents() {
+    try {
+      const data = await api('/api/events');
+      calendarEvents = data.events;
+    } catch (err) {
+      calendarEvents = [];
+    }
+  }
+
+  function renderCalendar() {
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth();
+    calendarLabel.textContent = calendarViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayStr = toDateStr(new Date());
+
+    const eventsByDate = {};
+    calendarEvents.forEach((ev) => {
+      (eventsByDate[ev.date] = eventsByDate[ev.date] || []).push(ev);
+    });
+
+    let html = '';
+    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d) => {
+      html += `<div class="calendar-weekday">${d}</div>`;
+    });
+    for (let i = 0; i < firstWeekday; i++) {
+      html += '<div class="calendar-cell empty"></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const classes = ['calendar-cell'];
+      if (dateStr === todayStr) classes.push('today');
+      if (dateStr === selectedDateStr) classes.push('selected');
+      const hasEvents = eventsByDate[dateStr] && eventsByDate[dateStr].length;
+      html += `<div class="${classes.join(' ')}" data-date="${dateStr}">${day}${hasEvents ? '<span class="event-dot"></span>' : ''}</div>`;
+    }
+    calendarGrid.innerHTML = html;
+
+    calendarGrid.querySelectorAll('.calendar-cell:not(.empty)').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        selectedDateStr = cell.dataset.date;
+        renderCalendar();
+      });
+    });
+
+    renderDayPanel(eventsByDate[selectedDateStr] || []);
+  }
+
+  function renderDayPanel(dayEvents) {
+    const [y, m, d] = selectedDateStr.split('-').map(Number);
+    const label = new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    let html = `<h4>${label}</h4>`;
+    if (dayEvents.length) {
+      dayEvents.forEach((ev) => {
+        html += `
+          <div class="calendar-event-item" data-id="${ev.id}">
+            <div>
+              <div class="event-title">${ev.title}</div>
+              ${ev.notes ? `<div class="event-notes">${ev.notes}</div>` : ''}
+            </div>
+            ${role ? `<button class="btn btn-ghost btn-icon" data-action="delete-event" aria-label="Delete event">${svgTrash}</button>` : ''}
+          </div>
+        `;
+      });
+    } else {
+      html += '<p class="text-muted">No events.</p>';
+    }
+
+    if (role) {
+      html += `
+        <form class="calendar-add-form" id="addEventForm">
+          <input class="input" name="title" placeholder="Event title" required>
+          <input class="input" name="notes" placeholder="Notes (optional)">
+          <button class="btn btn-primary" type="submit">Add event</button>
+        </form>
+      `;
+    }
+
+    calendarDayPanel.innerHTML = html;
+
+    if (role) {
+      calendarDayPanel.querySelectorAll('[data-action="delete-event"]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.closest('.calendar-event-item').dataset.id;
+          try {
+            const data = await api('/api/events', { method: 'DELETE', body: JSON.stringify({ id }) });
+            calendarEvents = data.events;
+            renderCalendar();
+          } catch (err) {
+            alert(err.message);
+          }
+        });
+      });
+
+      const addEventForm = document.getElementById('addEventForm');
+      addEventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(addEventForm);
+        try {
+          const data = await api('/api/events', {
+            method: 'POST',
+            body: JSON.stringify({ date: selectedDateStr, title: fd.get('title'), notes: fd.get('notes') }),
+          });
+          calendarEvents = data.events;
+          renderCalendar();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+    }
+  }
+
+  calendarPrevBtn.addEventListener('click', () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  calendarNextBtn.addEventListener('click', () => {
+    calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+    renderCalendar();
+  });
+
   // ---- Auth ----
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -345,6 +572,7 @@
       renderHub();
       show('hub');
       if (role === 'admin') loadViewers();
+      renderCalendar();
     } catch (err) {
       loginError.textContent = err.message;
       loginError.hidden = false;
@@ -366,6 +594,7 @@
     await loadApps();
     renderAuthArea();
     show('landing');
+    renderCalendar();
   }
 
   // ---- Init ----
@@ -383,5 +612,8 @@
     } else {
       show('landing');
     }
+    initWeather();
+    await loadCalendarEvents();
+    renderCalendar();
   })();
 })();
