@@ -48,7 +48,6 @@
   --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
 }
 
-*, *::before, *::as { box-sizing: border-box; }
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body { margin: 0; }
