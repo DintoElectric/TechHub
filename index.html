@@ -27,7 +27,7 @@
       <section id="landingView" class="landing-view" hidden>
         <div class="login-card">
           <h1>Sign in</h1>
-          <p class="hub-subtitle">Sign in to view Beta apps, or continue to the public hub (Live apps only).</p>
+          <p class="hub-subtitle">Sign in to view Beta apps and your notes/reminders, or continue to the public hub (Live apps only).</p>
           <form id="loginForm" class="admin-form">
             <div class="field">
               <label for="loginUsername">Username</label>
@@ -48,32 +48,62 @@
       <section id="hubView" hidden>
         <div class="hub-title">
           <h1>Dinto Technologies</h1>
+          <div class="title-underline" aria-hidden="true"></div>
           <p class="hub-subtitle" id="hubSubtitle"></p>
         </div>
 
-        <div class="widgets-row">
-          <div class="widget-card weather-widget">
-            <h3>Weather</h3>
-            <form id="weatherForm" class="weather-form">
-              <input class="input" id="weatherZipInput" name="zip" placeholder="Zip code" maxlength="5" inputmode="numeric" pattern="[0-9]{5}">
-              <button class="btn btn-ghost" type="submit">Go</button>
-            </form>
-            <div id="weatherDisplay" class="weather-display"></div>
-            <p class="form-error" id="weatherError" hidden></p>
+        <div class="hub-layout">
+          <div class="hub-main-col">
+            <div class="app-grid" id="appGrid"></div>
           </div>
 
-          <div class="widget-card calendar-widget">
-            <div class="calendar-header">
-              <button class="btn btn-ghost btn-icon" id="calendarPrevBtn" aria-label="Previous month">‹</button>
-              <h3 id="calendarLabel"></h3>
-              <button class="btn btn-ghost btn-icon" id="calendarNextBtn" aria-label="Next month">›</button>
+          <aside class="hub-sidebar" id="hubSidebar">
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-expanded="true">
+              <span>Widgets</span>
+              <svg class="sidebar-toggle-icon" width="12" height="12" viewBox="0 0 256 256" fill="currentColor"><path d="M215.4 92.7 128 165.3 40.6 92.7a8 8 0 0 0-10.2 12.3l92 76.7a8 8 0 0 0 10.2 0l92-76.7a8 8 0 1 0-10.2-12.3Z"></path></svg>
+            </button>
+
+            <div class="sidebar-content" id="sidebarContent">
+
+              <!-- Weather -->
+              <div class="side-widget weather-widget">
+                <h3>Weather</h3>
+                <div class="weather-chips" id="weatherChips"></div>
+                <form id="weatherAddForm" class="weather-add-form">
+                  <input class="input input-sm" id="weatherZipInput" name="zip" placeholder="Add zip code" maxlength="5" inputmode="numeric" pattern="[0-9]{5}">
+                  <button class="btn btn-ghost btn-icon" type="submit" aria-label="Add zip code">+</button>
+                </form>
+                <p class="form-error" id="weatherError" hidden></p>
+                <button class="weather-compact" id="weatherCompact" type="button">
+                  <span id="weatherCompactBody" class="text-muted">Add a zip code above</span>
+                </button>
+                <div class="weather-hourly" id="weatherHourly" hidden></div>
+              </div>
+
+              <!-- Calendar -->
+              <div class="side-widget calendar-widget">
+                <div class="calendar-header">
+                  <button class="btn btn-ghost btn-icon" id="calendarPrevBtn" aria-label="Previous month">‹</button>
+                  <h3 id="calendarLabel"></h3>
+                  <button class="btn btn-ghost btn-icon" id="calendarNextBtn" aria-label="Next month">›</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="calendar-day-panel" id="calendarDayPanel"></div>
+              </div>
+
+              <!-- Notes (logged-in only) -->
+              <div class="side-widget notes-widget" id="notesWidgetCard" hidden>
+                <h3>Notes</h3>
+                <form id="addNoteForm" class="notes-add-form">
+                  <input class="input input-sm" name="text" placeholder="Add a note…" required>
+                  <button class="btn btn-ghost btn-icon" type="submit" aria-label="Add note">+</button>
+                </form>
+                <div class="notes-list" id="notesList"></div>
+              </div>
+
             </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
-            <div class="calendar-day-panel" id="calendarDayPanel"></div>
-          </div>
+          </aside>
         </div>
-
-        <div class="app-grid" id="appGrid"></div>
       </section>
 
       <!-- Admin-only management panel -->
