@@ -132,10 +132,6 @@
     card.rel = 'noopener';
 
     card.innerHTML = `
-      <div class="card-preview">
-        <iframe src="${app.url}" title="${app.name}" tabindex="-1" loading="lazy"></iframe>
-        <div class="card-preview-fade"></div>
-      </div>
       <div class="card-body">
         <div class="card-row">
           <h2 class="card-name">${app.name}</h2>
@@ -146,6 +142,10 @@
           <span>${hostOf(app.url)}</span>
           ${svgOut}
         </div>
+      </div>
+      <div class="card-preview">
+        <iframe src="${app.url}" title="${app.name}" tabindex="-1" loading="lazy"></iframe>
+        <div class="card-preview-fade"></div>
       </div>
     `;
 
