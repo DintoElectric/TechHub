@@ -18,15 +18,72 @@
       </div>
       <span class="divider" aria-hidden="true"></span>
       <span class="hub-label">Tech Hub</span>
+      <div class="auth-area" id="authArea"></div>
     </header>
 
     <main class="hub-main">
-      <div class="hub-title">
-        <h1>Dinto Technologies</h1>
-        <p class="hub-subtitle"></p>
-      </div>
 
-      <div class="app-grid" id="appGrid"><!-- cards injected by app.js --></div>
+      <!-- Landing: login form + public bypass -->
+      <section id="landingView" class="landing-view" hidden>
+        <div class="login-card">
+          <h1>Sign in</h1>
+          <p class="hub-subtitle">Sign in to view Beta apps, or continue to the public hub (Live apps only).</p>
+          <form id="loginForm" class="admin-form">
+            <div class="field">
+              <label for="loginUsername">Username</label>
+              <input class="input" id="loginUsername" name="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+              <label for="loginPassword">Password</label>
+              <input class="input" id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <p class="form-error" id="loginError" hidden></p>
+            <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+          </form>
+          <button class="btn btn-ghost btn-block" id="bypassBtn">Continue without signing in →</button>
+        </div>
+      </section>
+
+      <!-- Hub: public / viewer / admin all share this -->
+      <section id="hubView" hidden>
+        <div class="hub-title">
+          <h1>Dinto Technologies</h1>
+          <p class="hub-subtitle" id="hubSubtitle"></p>
+        </div>
+        <div class="app-grid" id="appGrid"></div>
+      </section>
+
+      <!-- Admin-only management panel -->
+      <section id="adminPanel" class="admin-panel" hidden>
+        <div class="admin-block">
+          <h2>Add an app</h2>
+          <form id="addAppForm" class="admin-form admin-form-row">
+            <input class="input" name="name" placeholder="App name" required>
+            <input class="input" name="url" placeholder="https://example.netlify.app/" required>
+            <input class="input" name="blurb" placeholder="One-line description">
+            <select class="input" name="status">
+              <option value="Beta" selected>Beta</option>
+              <option value="Live">Live</option>
+            </select>
+            <button class="btn btn-primary" type="submit">Add</button>
+          </form>
+          <p class="form-error" id="addAppError" hidden></p>
+          <div id="adminAppList" class="admin-list"></div>
+        </div>
+
+        <div class="admin-block">
+          <h2>Viewer accounts</h2>
+          <p class="hub-subtitle">Viewers can sign in to see Beta apps but can't edit anything.</p>
+          <form id="addViewerForm" class="admin-form admin-form-row">
+            <input class="input" name="username" placeholder="Username" autocomplete="off" required>
+            <input class="input" name="password" placeholder="Password (min 8 characters)" type="password" autocomplete="new-password" required minlength="8">
+            <button class="btn btn-primary" type="submit">Create</button>
+          </form>
+          <p class="form-error" id="addViewerError" hidden></p>
+          <div id="viewerList" class="admin-list"></div>
+        </div>
+      </section>
+
     </main>
 
     <div class="preview-overlay" id="previewOverlay" hidden>
