@@ -9,6 +9,7 @@ const DEFAULT_APPS = [
   { id: 'as-built-viewer', name: 'Dinto As-Built Viewer', url: 'https://asbuiltviewer.netlify.app/', blurb: 'Views As-Builts and Panel Schedules', status: 'Live' },
   { id: 'delivery', name: 'Dinto Delivery', url: 'https://dintodelivery.netlify.app/', blurb: 'Schedule pickups and deliveries', status: 'Beta' },
   { id: 'prefab-catalog', name: 'Dinto Prefab Catalog', url: 'https://prefabcatalog.netlify.app/', blurb: 'Request prefabs', status: 'Beta' },
+  { id: 'procore', name: 'Procore', url: 'https://login.procore.com/?cookies_enabled=true', blurb: 'Procore login', status: 'Live' },
 ];
 
 async function loadApps(store) {
