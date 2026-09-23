@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dinto Technologies — Tech Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hub-header">
+      <div class="wordmark">
+        <span class="wordmark-main">DINTO</span>
+        <span class="wordmark-sub">Electric</span>
+      </div>
+      <span class="divider" aria-hidden="true"></span>
+      <span class="hub-label">Tech Hub</span>
+    </header>
+
+    <main class="hub-main">
+      <div class="hub-title">
+        <h1>Dinto Technologies</h1>
+        <p class="hub-subtitle"></p>
+      </div>
+
+      <div class="app-grid" id="appGrid"><!-- cards injected by app.js --></div>
+    </main>
+
+    <div class="preview-overlay" id="previewOverlay" hidden>
+      <div class="preview-backdrop"></div>
+      <div class="preview-panel" id="previewPanel">
+        <div class="preview-toolbar">
+          <span class="preview-name" id="previewName"></span>
+          <span class="tag tag-accent" id="previewStatus"></span>
+          <span class="preview-host" id="previewHost"></span>
+          <a class="btn btn-primary" id="previewOpenBtn" target="_blank" rel="noopener">Open app</a>
+          <button class="btn btn-ghost btn-icon" id="previewCloseBtn" aria-label="Close preview">
+            <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M205.7 194.3a8 8 0 0 1-11.4 11.4L128 139.3l-66.3 66.4a8 8 0 0 1-11.4-11.4l66.4-66.3-66.4-66.3a8 8 0 0 1 11.4-11.4l66.3 66.4 66.3-66.4a8 8 0 0 1 11.4 11.4L139.3 128Z"></path></svg>
+          </button>
+        </div>
+        <iframe id="previewFrame" class="preview-frame" title="App preview" src="about:blank"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
