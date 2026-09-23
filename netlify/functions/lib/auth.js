@@ -81,3 +81,12 @@ export function jsonResponse(data, init = {}) {
     headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
   });
 }
+export function timingSafeStringEqual(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) {
+    try { crypto.timingSafeEqual(bufA, bufA); } catch {}
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
