@@ -292,40 +292,104 @@ h1, h2, h3, h4 {
   .card-preview iframe { display: none; }
 }
 
-/* — widgets row (weather + calendar) — */
-.widgets-row { display: flex; flex-wrap: wrap; gap: var(--space-8); max-width: 1040px; }
-.widget-card {
-  flex: 1 1 300px;
-  display: flex; flex-direction: column; gap: var(--space-3);
-  padding: var(--space-6);
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+/* — title underline — */
+.title-underline {
+  width: 75%;
+  max-width: 900px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.55);
+  margin: var(--space-2) 0 0;
 }
-.widget-card h3 { font-size: 15px; }
 
-/* weather */
-.weather-form { display: flex; gap: var(--space-2); }
-.weather-form .input { flex: 1; }
-.weather-display { display: flex; align-items: center; gap: var(--space-3); min-height: 40px; }
-.weather-display .weather-icon { font-size: 28px; line-height: 1; }
-.weather-display .weather-meta { display: flex; flex-direction: column; gap: 2px; }
-.weather-display .weather-temp { font: 500 24px/1 var(--font-heading); color: var(--color-text); }
-.weather-display .weather-desc { font-size: 12px; color: var(--color-neutral-300); }
-.weather-display .weather-place { font-size: 11px; color: var(--color-neutral-400); }
+/* — hub two-column layout — */
+.hub-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  max-width: 1240px;
+}
+.hub-main-col { flex: 3 1 600px; min-width: 0; }
+.hub-main-col .app-grid { max-width: none; }
 
-/* calendar */
+.hub-sidebar {
+  flex: 1 1 280px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.sidebar-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  background: transparent; border: none; border-bottom: 1px solid var(--color-divider);
+  padding: 0 0 var(--space-2);
+  color: var(--color-neutral-300);
+  font: 500 12px/1 var(--font-heading); letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer;
+}
+.sidebar-toggle-icon { transition: transform .15s ease-out; }
+.sidebar-toggle[aria-expanded="false"] .sidebar-toggle-icon { transform: rotate(-90deg); }
+.sidebar-content { display: flex; flex-direction: column; gap: var(--space-6); }
+.sidebar-content[hidden] { display: none; }
+
+/* Sidebar widgets: deliberately NOT styled like the app cards / admin blocks —
+   no surface background, no box-shadow, just a thin divider between them. */
+.side-widget {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+}
+.side-widget:last-child { border-bottom: none; padding-bottom: 0; }
+.side-widget h3 {
+  font: 500 12px/1 var(--font-heading); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-neutral-400);
+}
+.input-sm { min-height: 30px; padding: 4px 8px; font-size: 13px; }
+
+/* — weather — */
+.weather-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.weather-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px; font-size: 12px;
+  background: var(--color-bg); border: 1px solid var(--color-divider);
+  color: var(--color-neutral-300); cursor: pointer;
+}
+.weather-chip:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.weather-chip.active { border-color: var(--color-accent); color: var(--color-accent-200); }
+.weather-chip .chip-remove { color: var(--color-neutral-500); font-size: 13px; line-height: 1; }
+.weather-chip .chip-remove:hover { color: var(--color-text); }
+.weather-add-form { display: flex; gap: var(--space-2); }
+.weather-add-form .input-sm { flex: 1; }
+.weather-compact {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: transparent; border: none; padding: 0; margin: 0;
+  cursor: pointer; text-align: left; color: inherit; width: 100%;
+}
+.weather-compact .weather-icon { font-size: 22px; line-height: 1; }
+.weather-compact .weather-temp { font: 500 18px/1 var(--font-heading); color: var(--color-text); }
+.weather-compact .weather-desc { font-size: 12px; color: var(--color-neutral-400); }
+.weather-hourly { display: flex; gap: var(--space-3); overflow-x: auto; padding-top: var(--space-2); }
+.weather-hourly[hidden] { display: none; }
+.weather-hour {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--color-neutral-300); min-width: 42px;
+}
+.weather-hour .hour-icon { font-size: 16px; }
+.weather-hour .hour-temp { color: var(--color-text); font-weight: 500; }
+.weather-hour .hour-precip { color: var(--color-accent-300); }
+
+/* — calendar (compact, sidebar version) — */
 .calendar-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.calendar-header h3 { flex: 1; text-align: center; }
-.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.calendar-header h3 { flex: 1; text-align: center; margin: 0; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--color-text); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
 .calendar-weekday {
-  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--color-neutral-500); padding-bottom: 4px;
 }
 .calendar-cell {
   position: relative;
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 12px; border-radius: var(--radius-sm); cursor: pointer;
   background: var(--color-bg); color: var(--color-neutral-300);
   border: 1px solid transparent;
 }
@@ -334,15 +398,30 @@ h1, h2, h3, h4 {
 .calendar-cell.today { border-color: var(--color-accent); color: var(--color-text); }
 .calendar-cell.selected { background: var(--color-accent-800); color: var(--color-accent-100); }
 .calendar-cell .event-dot {
-  position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
   width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent);
 }
-.calendar-day-panel { display: flex; flex-direction: column; gap: var(--space-2); font-size: 13px; }
-.calendar-day-panel h4 { font-size: 13px; color: var(--color-neutral-300); }
+.calendar-day-panel { display: flex; flex-direction: column; gap: var(--space-2); font-size: 12px; }
+.calendar-day-panel h4 { font-size: 12px; color: var(--color-neutral-300); margin: 0; }
 .calendar-event-item {
   display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);
   padding: var(--space-2); background: var(--color-bg); border-radius: var(--radius-sm);
 }
 .calendar-event-item .event-title { font-weight: 500; }
-.calendar-event-item .event-notes { color: var(--color-neutral-400); font-size: 12px; margin-top: 2px; }
+.calendar-event-item .event-notes { color: var(--color-neutral-400); font-size: 11px; margin-top: 2px; }
 .calendar-add-form { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* — notes — */
+.notes-add-form { display: flex; gap: var(--space-2); }
+.notes-add-form .input-sm { flex: 1; }
+.notes-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.note-item {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2);
+  padding: var(--space-2); background: var(--color-bg); border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--color-neutral-200);
+}
+
+@media (max-width: 780px) {
+  .hub-layout { gap: var(--space-4); }
+  .hub-sidebar { flex-basis: 220px; }
+}
