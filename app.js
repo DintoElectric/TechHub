@@ -35,16 +35,26 @@
   const previewFrame = document.getElementById('previewFrame');
   const previewCloseBtn = document.getElementById('previewCloseBtn');
 
-  const weatherForm = document.getElementById('weatherForm');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarContent = document.getElementById('sidebarContent');
+
+  const weatherChips = document.getElementById('weatherChips');
+  const weatherAddForm = document.getElementById('weatherAddForm');
   const weatherZipInput = document.getElementById('weatherZipInput');
-  const weatherDisplay = document.getElementById('weatherDisplay');
   const weatherError = document.getElementById('weatherError');
+  const weatherCompact = document.getElementById('weatherCompact');
+  const weatherCompactBody = document.getElementById('weatherCompactBody');
+  const weatherHourly = document.getElementById('weatherHourly');
 
   const calendarPrevBtn = document.getElementById('calendarPrevBtn');
   const calendarNextBtn = document.getElementById('calendarNextBtn');
   const calendarLabel = document.getElementById('calendarLabel');
   const calendarGrid = document.getElementById('calendarGrid');
   const calendarDayPanel = document.getElementById('calendarDayPanel');
+
+  const notesWidgetCard = document.getElementById('notesWidgetCard');
+  const addNoteForm = document.getElementById('addNoteForm');
+  const notesList = document.getElementById('notesList');
 
   // ---- State ----
   let apps = [];
@@ -53,14 +63,6 @@
   let publicMode = false; // true once the user hits "continue without signing in"
   let hoverTimer = null;
   let openIndex = null;
-
-  const WEATHER_ZIP_KEY = 'dinto_hub_weather_zip';
-  const DEFAULT_ZIP = '06762';
-
-  let calendarEvents = [];
-  const today = new Date();
-  let calendarViewDate = new Date(today.getFullYear(), today.getMonth(), 1);
-  let selectedDateStr = toDateStr(today);
 
   // ---- API helpers ----
   async function api(path, options = {}) {
@@ -118,6 +120,8 @@
     visibleApps.forEach((app) => appGrid.appendChild(buildCard(app)));
     rescale();
     if (role === 'admin') renderAdminAppList();
+
+    notesWidgetCard.hidden = !role;
   }
 
   function buildCard(app) {
@@ -348,7 +352,21 @@
     }
   });
 
-  // ---- Weather widget ----
+  // ---- Sidebar collapse ----
+  function setSidebarExpanded(expanded) {
+    sidebarContent.hidden = !expanded;
+    sidebarToggle.setAttribute('aria-expanded', String(expanded));
+  }
+  sidebarToggle.addEventListener('click', () => {
+    setSidebarExpanded(sidebarContent.hidden);
+  });
+  setSidebarExpanded(window.innerWidth > 900);
+
+  // ---- Weather widget (multiple saved zip codes) ----
+  const WEATHER_ZIPS_KEY = 'dinto_hub_weather_zips';
+  const WEATHER_ACTIVE_KEY = 'dinto_hub_weather_active_zip';
+  const DEFAULT_ZIP = '06762';
+
   const WEATHER_CODES = {
     0: ['Clear sky', '☀️'],
     1: ['Mainly clear', '🌤️'],
@@ -365,6 +383,30 @@
     85: ['Snow showers', '🌨️'], 86: ['Snow showers', '🌨️'],
     95: ['Thunderstorm', '⛈️'], 96: ['Thunderstorm w/ hail', '⛈️'], 99: ['Thunderstorm w/ hail', '⛈️'],
   };
+  function weatherLookup(code) {
+    return WEATHER_CODES[code] || ['—', '🌡️'];
+  }
+
+  let savedZips = [];
+  let activeZip = null;
+  let hourlyOpen = false;
+  const weatherCache = {}; // zip -> { place, temp, label, icon, hourly: [...] }
+
+  function loadZipsFromStorage() {
+    try {
+      const raw = localStorage.getItem(WEATHER_ZIPS_KEY);
+      savedZips = raw ? JSON.parse(raw) : [];
+    } catch {
+      savedZips = [];
+    }
+    if (!savedZips.length) savedZips = [DEFAULT_ZIP];
+    activeZip = localStorage.getItem(WEATHER_ACTIVE_KEY) || savedZips[0];
+    if (!savedZips.includes(activeZip)) activeZip = savedZips[0];
+  }
+  function saveZipsToStorage() {
+    localStorage.setItem(WEATHER_ZIPS_KEY, JSON.stringify(savedZips));
+    localStorage.setItem(WEATHER_ACTIVE_KEY, activeZip);
+  }
 
   async function fetchWeatherForZip(zip) {
     const geoRes = await fetch(`https://api.zippopotam.us/us/${zip}`);
@@ -375,59 +417,145 @@
     const lat = place.latitude;
     const lon = place.longitude;
     const wRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&current=temperature_2m,weather_code` +
+      `&hourly=temperature_2m,precipitation_probability,weather_code` +
+      `&temperature_unit=fahrenheit&forecast_days=2`
     );
     if (!wRes.ok) throw new Error('Weather lookup failed');
     const wData = await wRes.json();
-    const code = wData.current.weather_code;
-    const [label, icon] = WEATHER_CODES[code] || ['—', '🌡️'];
+    const [label, icon] = weatherLookup(wData.current.weather_code);
+
+    const nowIso = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+    let startIdx = wData.hourly.time.findIndex((t) => t.slice(0, 13) >= nowIso);
+    if (startIdx === -1) startIdx = 0;
+    const hourly = [];
+    for (let i = startIdx; i < Math.min(startIdx + 12, wData.hourly.time.length); i++) {
+      const [hLabel, hIcon] = weatherLookup(wData.hourly.weather_code[i]);
+      hourly.push({
+        time: wData.hourly.time[i],
+        temp: Math.round(wData.hourly.temperature_2m[i]),
+        precip: wData.hourly.precipitation_probability[i],
+        icon: hIcon,
+        label: hLabel,
+      });
+    }
+
     return {
       place: `${place['place name']}, ${place['state abbreviation']}`,
       temp: Math.round(wData.current.temperature_2m),
       label,
       icon,
+      hourly,
     };
   }
 
-  async function loadWeather(zip) {
+  function renderWeatherChips() {
+    weatherChips.innerHTML = '';
+    savedZips.forEach((zip) => {
+      const chip = document.createElement('span');
+      chip.className = 'weather-chip' + (zip === activeZip ? ' active' : '');
+      chip.innerHTML = `<span data-zip="${zip}">${zip}</span>${savedZips.length > 1 ? `<span class="chip-remove" data-remove="${zip}">×</span>` : ''}`;
+      chip.querySelector('[data-zip]').addEventListener('click', () => {
+        activeZip = zip;
+        hourlyOpen = false;
+        saveZipsToStorage();
+        renderWeatherChips();
+        renderWeatherCompact();
+      });
+      const removeEl = chip.querySelector('[data-remove]');
+      if (removeEl) {
+        removeEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          savedZips = savedZips.filter((z) => z !== zip);
+          delete weatherCache[zip];
+          if (activeZip === zip) activeZip = savedZips[0];
+          saveZipsToStorage();
+          renderWeatherChips();
+          renderWeatherCompact();
+        });
+      }
+      weatherChips.appendChild(chip);
+    });
+  }
+
+  async function renderWeatherCompact() {
+    if (!activeZip) {
+      weatherCompactBody.innerHTML = '<span class="text-muted">Add a zip code above</span>';
+      weatherHourly.hidden = true;
+      return;
+    }
     weatherError.hidden = true;
-    weatherDisplay.innerHTML = '<span class="text-muted">Loading…</span>';
+    weatherCompactBody.innerHTML = '<span class="text-muted">Loading…</span>';
     try {
-      const w = await fetchWeatherForZip(zip);
-      weatherDisplay.innerHTML = `
+      const w = weatherCache[activeZip] || await fetchWeatherForZip(activeZip);
+      weatherCache[activeZip] = w;
+      weatherCompactBody.innerHTML = `
         <span class="weather-icon">${w.icon}</span>
-        <div class="weather-meta">
-          <span class="weather-temp">${w.temp}°F</span>
-          <span class="weather-desc">${w.label}</span>
-          <span class="weather-place">${w.place}</span>
-        </div>
+        <span class="weather-temp">${w.temp}°F</span>
+        <span class="weather-desc">${w.label} · ${w.place}</span>
       `;
+      if (hourlyOpen) renderWeatherHourly(w);
     } catch (err) {
-      weatherDisplay.innerHTML = '';
+      weatherCompactBody.innerHTML = '';
       weatherError.textContent = err.message;
       weatherError.hidden = false;
     }
   }
 
-  function initWeather() {
-    const savedZip = localStorage.getItem(WEATHER_ZIP_KEY) || DEFAULT_ZIP;
-    weatherZipInput.value = savedZip;
-    loadWeather(savedZip);
+  function renderWeatherHourly(w) {
+    weatherHourly.hidden = false;
+    weatherHourly.innerHTML = w.hourly.map((h) => {
+      const hour = new Date(h.time).toLocaleTimeString('en-US', { hour: 'numeric' });
+      return `
+        <div class="weather-hour">
+          <span>${hour}</span>
+          <span class="hour-icon">${h.icon}</span>
+          <span class="hour-temp">${h.temp}°</span>
+          <span class="hour-precip">${h.precip}%</span>
+        </div>
+      `;
+    }).join('');
   }
 
-  weatherForm.addEventListener('submit', (e) => {
+  weatherCompact.addEventListener('click', () => {
+    hourlyOpen = !hourlyOpen;
+    if (!hourlyOpen) {
+      weatherHourly.hidden = true;
+    } else if (activeZip && weatherCache[activeZip]) {
+      renderWeatherHourly(weatherCache[activeZip]);
+    }
+  });
+
+  weatherAddForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const zip = weatherZipInput.value.trim() || DEFAULT_ZIP;
+    const zip = weatherZipInput.value.trim();
     if (!/^\d{5}$/.test(zip)) {
       weatherError.textContent = 'Enter a 5-digit zip code';
       weatherError.hidden = false;
       return;
     }
-    localStorage.setItem(WEATHER_ZIP_KEY, zip);
-    loadWeather(zip);
+    if (!savedZips.includes(zip)) savedZips.push(zip);
+    activeZip = zip;
+    hourlyOpen = false;
+    saveZipsToStorage();
+    weatherZipInput.value = '';
+    renderWeatherChips();
+    renderWeatherCompact();
   });
 
-  // ---- Calendar widget ----
+  function initWeather() {
+    loadZipsFromStorage();
+    renderWeatherChips();
+    renderWeatherCompact();
+  }
+
+  // ---- Calendar widget (private per account) ----
+  let calendarEvents = [];
+  const today = new Date();
+  let calendarViewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selectedDateStr = toDateStr(today);
+
   function toDateStr(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
@@ -506,8 +634,8 @@
     if (role) {
       html += `
         <form class="calendar-add-form" id="addEventForm">
-          <input class="input" name="title" placeholder="Event title" required>
-          <input class="input" name="notes" placeholder="Notes (optional)">
+          <input class="input input-sm" name="title" placeholder="Event title" required>
+          <input class="input input-sm" name="notes" placeholder="Notes (optional)">
           <button class="btn btn-primary" type="submit">Add event</button>
         </form>
       `;
@@ -556,6 +684,60 @@
     renderCalendar();
   });
 
+  // ---- Notes widget (private per account) ----
+  let notes = [];
+
+  async function loadNotes() {
+    if (!role) { notes = []; return; }
+    try {
+      const data = await api('/api/notes');
+      notes = data.notes;
+    } catch (err) {
+      notes = [];
+    }
+  }
+
+  function renderNotes() {
+    if (!notes.length) {
+      notesList.innerHTML = '<p class="text-muted">No notes yet.</p>';
+      return;
+    }
+    notesList.innerHTML = '';
+    notes.forEach((n) => {
+      const row = document.createElement('div');
+      row.className = 'note-item';
+      row.innerHTML = `
+        <span>${n.text}</span>
+        <button class="btn btn-ghost btn-icon" aria-label="Delete note">${svgTrash}</button>
+      `;
+      row.querySelector('button').addEventListener('click', async () => {
+        try {
+          const data = await api('/api/notes', { method: 'DELETE', body: JSON.stringify({ id: n.id }) });
+          notes = data.notes;
+          renderNotes();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+      notesList.appendChild(row);
+    });
+  }
+
+  addNoteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(addNoteForm);
+    const text = fd.get('text');
+    if (!text || !text.trim()) return;
+    try {
+      const data = await api('/api/notes', { method: 'POST', body: JSON.stringify({ text }) });
+      notes = data.notes;
+      addNoteForm.reset();
+      renderNotes();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
   // ---- Auth ----
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -572,7 +754,10 @@
       renderHub();
       show('hub');
       if (role === 'admin') loadViewers();
+      await loadCalendarEvents();
       renderCalendar();
+      await loadNotes();
+      renderNotes();
     } catch (err) {
       loginError.textContent = err.message;
       loginError.hidden = false;
@@ -594,7 +779,10 @@
     await loadApps();
     renderAuthArea();
     show('landing');
+    calendarEvents = [];
     renderCalendar();
+    notes = [];
+    renderNotes();
   }
 
   // ---- Init ----
@@ -615,5 +803,7 @@
     initWeather();
     await loadCalendarEvents();
     renderCalendar();
+    await loadNotes();
+    renderNotes();
   })();
 })();
