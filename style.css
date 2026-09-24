@@ -214,6 +214,16 @@ h1, h2, h3, h4 {
   pointer-events: none;
 }
 
+.card-logo-plate {
+  aspect-ratio: 16 / 10;
+  display: flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  padding: var(--space-8);
+}
+.card-logo-plate img {
+  max-width: 70%; max-height: 60%; object-fit: contain;
+}
+
 .card-body {
   display: flex; flex-direction: column; gap: var(--space-2);
   padding: var(--space-6);
