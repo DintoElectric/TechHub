@@ -131,6 +131,19 @@
     card.target = '_blank';
     card.rel = 'noopener';
 
+    const previewHtml = app.logo
+      ? `
+        <div class="card-logo-plate">
+          <img src="${app.logo}" alt="${app.name} logo">
+        </div>
+      `
+      : `
+        <div class="card-preview">
+          <iframe src="${app.url}" title="${app.name}" tabindex="-1" loading="lazy"></iframe>
+          <div class="card-preview-fade"></div>
+        </div>
+      `;
+
     card.innerHTML = `
       <div class="card-body">
         <div class="card-row">
@@ -143,10 +156,7 @@
           ${svgOut}
         </div>
       </div>
-      <div class="card-preview">
-        <iframe src="${app.url}" title="${app.name}" tabindex="-1" loading="lazy"></iframe>
-        <div class="card-preview-fade"></div>
-      </div>
+      ${previewHtml}
     `;
 
     if (hasHover) {
@@ -230,6 +240,7 @@
         <input class="input" name="name" value="${app.name}" required>
         <input class="input" name="url" value="${app.url}" required>
         <input class="input" name="blurb" value="${app.blurb}">
+        <input class="input" name="logo" value="${app.logo || ''}" placeholder="Logo image URL (optional)">
         <select class="input" name="status">
           <option value="Live" ${app.status === 'Live' ? 'selected' : ''}>Live</option>
           <option value="Beta" ${app.status === 'Beta' ? 'selected' : ''}>Beta</option>
@@ -253,6 +264,7 @@
             url: fd.get('url'),
             blurb: fd.get('blurb'),
             status: fd.get('status'),
+            logo: fd.get('logo'),
           }),
         });
         apps = data.apps;
@@ -286,6 +298,7 @@
           url: fd.get('url'),
           blurb: fd.get('blurb'),
           status: fd.get('status'),
+          logo: fd.get('logo'),
         }),
       });
       apps = data.apps;
