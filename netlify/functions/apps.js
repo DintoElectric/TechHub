@@ -43,6 +43,7 @@ export default async (req) => {
       url: body.url,
       blurb: body.blurb || '',
       status: body.status === 'Live' ? 'Live' : 'Beta',
+      logo: body.logo || '',
     };
     apps.push(app);
     await store.setJSON(KEY, apps);
@@ -61,6 +62,7 @@ export default async (req) => {
       url: body.url ?? apps[idx].url,
       blurb: body.blurb ?? apps[idx].blurb,
       status: body.status === 'Live' || body.status === 'Beta' ? body.status : apps[idx].status,
+      logo: body.logo ?? apps[idx].logo ?? '',
     };
     await store.setJSON(KEY, apps);
     return jsonResponse({ apps });
