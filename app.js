@@ -35,6 +35,14 @@
   const previewFrame = document.getElementById('previewFrame');
   const previewCloseBtn = document.getElementById('previewCloseBtn');
 
+  // Popup logo view: apps with a logo show it here instead of a (usually blocked) live iframe.
+  const previewLogo = document.createElement('div');
+  previewLogo.className = 'preview-logo';
+  previewLogo.hidden = true;
+  previewLogo.innerHTML = '<img alt="">';
+  previewFrame.after(previewLogo);
+  const previewLogoImg = previewLogo.querySelector('img');
+
   const sidebarToggle = document.getElementById('sidebarToggle');
   const sidebarContent = document.getElementById('sidebarContent');
 
@@ -193,13 +201,26 @@
     previewStatus.textContent = app.status;
     previewHost.textContent = hostOf(app.url);
     previewOpenBtn.href = app.url;
-    previewFrame.src = app.url;
+    if (app.logo) {
+      previewLogoImg.src = app.logo;
+      previewLogoImg.alt = `${app.name} logo`;
+      previewLogo.classList.toggle('preview-logo--cover', app.logoFit === 'cover');
+      previewLogo.hidden = false;
+      previewFrame.hidden = true;
+      previewFrame.src = 'about:blank';
+    } else {
+      previewLogo.hidden = true;
+      previewFrame.hidden = false;
+      previewFrame.src = app.url;
+    }
     overlay.hidden = false;
   }
   function closePreview() {
     openIndex = null;
     overlay.hidden = true;
     previewFrame.src = 'about:blank';
+    previewLogo.hidden = true;
+    previewFrame.hidden = false;
   }
   panel.addEventListener('mouseenter', () => clearTimeout(hoverTimer));
   panel.addEventListener('mouseleave', () => {
