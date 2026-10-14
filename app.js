@@ -133,7 +133,7 @@
 
     const previewHtml = app.logo
       ? `
-        <div class="card-logo-plate">
+        <div class="card-logo-plate${app.logoFit === 'cover' ? ' card-logo-plate--cover' : ''}">
           <img src="${app.logo}" alt="${app.name} logo">
         </div>
       `
@@ -241,6 +241,10 @@
         <input class="input" name="url" value="${app.url}" required>
         <input class="input" name="blurb" value="${app.blurb}">
         <input class="input" name="logo" value="${app.logo || ''}" placeholder="Logo image URL (optional)">
+        <select class="input" name="logoFit" aria-label="Logo fit">
+          <option value="contain" ${app.logoFit !== 'cover' ? 'selected' : ''}>Logo: fit inside plate</option>
+          <option value="cover" ${app.logoFit === 'cover' ? 'selected' : ''}>Logo: fill whole plate</option>
+        </select>
         <select class="input" name="status">
           <option value="Live" ${app.status === 'Live' ? 'selected' : ''}>Live</option>
           <option value="Beta" ${app.status === 'Beta' ? 'selected' : ''}>Beta</option>
@@ -265,6 +269,7 @@
             blurb: fd.get('blurb'),
             status: fd.get('status'),
             logo: fd.get('logo'),
+            logoFit: fd.get('logoFit'),
           }),
         });
         apps = data.apps;
@@ -299,6 +304,7 @@
           blurb: fd.get('blurb'),
           status: fd.get('status'),
           logo: fd.get('logo'),
+          logoFit: fd.get('logoFit'),
         }),
       });
       apps = data.apps;
