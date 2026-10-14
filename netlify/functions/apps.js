@@ -20,7 +20,8 @@ async function loadApps(store) {
 }
 
 export default async (req) => {
-  const store = getStore(STORE);
+  // Strong consistency: always read the latest saved list, never a stale cached copy.
+  const store = getStore({ name: STORE, consistency: 'strong' });
   const session = getSession(req);
 
   if (req.method === 'GET') {
@@ -44,6 +45,7 @@ export default async (req) => {
       blurb: body.blurb || '',
       status: body.status === 'Live' ? 'Live' : 'Beta',
       logo: body.logo || '',
+      logoFit: body.logoFit === 'cover' ? 'cover' : 'contain',
     };
     apps.push(app);
     await store.setJSON(KEY, apps);
@@ -63,6 +65,7 @@ export default async (req) => {
       blurb: body.blurb ?? apps[idx].blurb,
       status: body.status === 'Live' || body.status === 'Beta' ? body.status : apps[idx].status,
       logo: body.logo ?? apps[idx].logo ?? '',
+      logoFit: body.logoFit === 'cover' || body.logoFit === 'contain' ? body.logoFit : (apps[idx].logoFit || 'contain'),
     };
     await store.setJSON(KEY, apps);
     return jsonResponse({ apps });
