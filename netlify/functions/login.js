@@ -17,7 +17,8 @@ export default async (req) => {
     return jsonResponse({ username, role: 'admin' }, { headers: { 'Set-Cookie': cookie } });
   }
 
-  const store = getStore('dinto-hub');
+  // Strong consistency: a viewer account you just created can log in right away.
+  const store = getStore({ name: 'dinto-hub', consistency: 'strong' });
   const viewers = (await store.get('viewers', { type: 'json' })) || [];
   const viewer = viewers.find((v) => v.username.toLowerCase() === String(username).toLowerCase());
   if (viewer && verifyPassword(password, viewer.passwordHash)) {
