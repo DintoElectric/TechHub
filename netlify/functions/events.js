@@ -13,7 +13,8 @@ function isValidDate(str) {
 }
 
 export default async (req) => {
-  const store = getStore(STORE);
+  // Strong consistency: always read the latest saved data, never a stale cached copy.
+  const store = getStore({ name: STORE, consistency: 'strong' });
   const session = getSession(req);
 
   // Events are private per account. Public visitors get an empty list
