@@ -16,7 +16,8 @@ export default async (req) => {
     return jsonResponse({ error: 'Login required' }, { status: 403 });
   }
 
-  const store = getStore(STORE);
+  // Strong consistency: always read the latest saved data, never a stale cached copy.
+  const store = getStore({ name: STORE, consistency: 'strong' });
 
   if (req.method === 'GET') {
     const notes = await loadNotes(store);
