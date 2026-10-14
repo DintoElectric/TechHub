@@ -17,7 +17,8 @@ export default async (req) => {
   if (!session || session.role !== 'admin') {
     return jsonResponse({ error: 'Admin login required' }, { status: 403 });
   }
-  const store = getStore(STORE);
+  // Strong consistency: always read the latest saved data, never a stale cached copy.
+  const store = getStore({ name: STORE, consistency: 'strong' });
 
   if (req.method === 'GET') {
     const viewers = await loadViewers(store);
