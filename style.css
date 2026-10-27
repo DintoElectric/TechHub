@@ -245,6 +245,14 @@ h1, h2, h3, h4 {
 }
 .card-host svg { display: block; }
 
+/* Admin reordering: cards can be dragged; highlight the card being dropped onto */
+.app-card[draggable="true"] { cursor: grab; }
+.app-card[draggable="true"]:active { cursor: grabbing; }
+.app-card.dragging { opacity: 0.45; }
+.app-card.drag-over { outline: 2px dashed var(--color-accent); outline-offset: 4px; }
+.btn-icon:disabled { opacity: 0.3; cursor: default; }
+.btn-icon:disabled:hover { background: transparent; }
+
 /* — hover preview overlay — */
 .preview-overlay {
   position: fixed; inset: 0; z-index: 50;

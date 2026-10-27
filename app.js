@@ -3,6 +3,9 @@
   const svgEdit = '<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M227.3 73.4 182.6 28.7a16 16 0 0 0-22.6 0L36.7 152a15.9 15.9 0 0 0-4.7 11.3V208a8 8 0 0 0 8 8h44.7a15.9 15.9 0 0 0 11.3-4.7L227.3 96a16 16 0 0 0 0-22.6ZM82.7 200H48v-34.7l88-88L170.7 112ZM184 100.7 155.3 72 172 55.3 200.7 84Z"></path></svg>';
   const svgTrash = '<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16ZM96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Zm48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Z"></path></svg>';
 
+  const svgUp = '<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M213.7 165.7a8 8 0 0 1-11.4 0L128 91.3l-74.3 74.4a8 8 0 0 1-11.4-11.4l80-80a8 8 0 0 1 11.4 0l80 80a8 8 0 0 1 0 11.4Z"></path></svg>';
+  const svgDown = '<svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M213.7 101.7l-80 80a8 8 0 0 1-11.4 0l-80-80a8 8 0 0 1 11.4-11.4L128 164.7l74.3-74.4a8 8 0 0 1 11.4 11.4Z"></path></svg>';
+
   const hostOf = (url) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const hasHover = window.matchMedia('(hover: hover)').matches;
 
@@ -71,6 +74,7 @@
   let publicMode = false; // true once the user hits "continue without signing in"
   let hoverTimer = null;
   let openIndex = null;
+  let dragId = null; // id of the app card being dragged (admin reordering)
 
   // ---- API helpers ----
   async function api(path, options = {}) {
@@ -119,7 +123,7 @@
   function renderHub() {
     const visibleApps = role ? apps : apps.filter((a) => a.status === 'Live');
     hubSubtitle.textContent = role === 'admin'
-      ? 'Signed in as admin — every app is listed below, including Beta.'
+      ? 'Signed in as admin — every app is listed below, including Beta. Drag cards to reorder them.'
       : role === 'viewer'
         ? 'All apps, including Beta releases.'
         : '';
@@ -167,8 +171,39 @@
       ${previewHtml}
     `;
 
+    if (role === 'admin') {
+      card.draggable = true;
+      card.dataset.id = app.id;
+
+      card.addEventListener('dragstart', (e) => {
+        dragId = app.id;
+        clearTimeout(hoverTimer);
+        closePreview();
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', app.id);
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => {
+        dragId = null;
+        appGrid.querySelectorAll('.dragging, .drag-over').forEach((el) => el.classList.remove('dragging', 'drag-over'));
+      });
+      card.addEventListener('dragover', (e) => {
+        if (!dragId || dragId === app.id) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-over');
+      });
+      card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        if (dragId && dragId !== app.id) moveApp(dragId, app.id);
+      });
+    }
+
     if (hasHover) {
       card.addEventListener('mouseenter', () => {
+        if (dragId) return;
         clearTimeout(hoverTimer);
         hoverTimer = setTimeout(() => openPreview(app), 600);
       });
@@ -232,10 +267,44 @@
     if (e.key === 'Escape' && openIndex !== null) { clearTimeout(hoverTimer); closePreview(); }
   });
 
+  // ---- Admin: reorder apps ----
+  function moveApp(fromId, toId) {
+    const from = apps.findIndex((a) => a.id === fromId);
+    const to = apps.findIndex((a) => a.id === toId);
+    if (from === -1 || to === -1 || from === to) return;
+    const [item] = apps.splice(from, 1);
+    apps.splice(to, 0, item);
+    saveOrder();
+  }
+
+  function moveAppBy(id, delta) {
+    const from = apps.findIndex((a) => a.id === id);
+    const to = from + delta;
+    if (from === -1 || to < 0 || to >= apps.length) return;
+    const [item] = apps.splice(from, 1);
+    apps.splice(to, 0, item);
+    saveOrder();
+  }
+
+  async function saveOrder() {
+    renderHub(); // show the new order immediately
+    try {
+      const data = await api('/api/apps', {
+        method: 'PUT',
+        body: JSON.stringify({ order: apps.map((a) => a.id) }),
+      });
+      apps = data.apps;
+    } catch (err) {
+      alert(`Couldn't save the new order: ${err.message}`);
+      await loadApps();
+      renderHub();
+    }
+  }
+
   // ---- Admin: app management ----
   function renderAdminAppList() {
     adminAppList.innerHTML = '';
-    apps.forEach((app) => {
+    apps.forEach((app, i) => {
       const row = document.createElement('div');
       row.className = 'admin-row';
       row.innerHTML = `
@@ -245,10 +314,14 @@
           <span class="admin-row-url">${app.url}</span>
         </div>
         <div class="admin-row-actions">
+          <button class="btn btn-ghost btn-icon" data-action="up" aria-label="Move ${app.name} up" ${i === 0 ? 'disabled' : ''}>${svgUp}</button>
+          <button class="btn btn-ghost btn-icon" data-action="down" aria-label="Move ${app.name} down" ${i === apps.length - 1 ? 'disabled' : ''}>${svgDown}</button>
           <button class="btn btn-ghost btn-icon" data-action="edit" aria-label="Edit ${app.name}">${svgEdit}</button>
           <button class="btn btn-ghost btn-icon" data-action="delete" aria-label="Delete ${app.name}">${svgTrash}</button>
         </div>
       `;
+      row.querySelector('[data-action="up"]').addEventListener('click', () => moveAppBy(app.id, -1));
+      row.querySelector('[data-action="down"]').addEventListener('click', () => moveAppBy(app.id, 1));
       row.querySelector('[data-action="edit"]').addEventListener('click', () => openEditRow(row, app));
       row.querySelector('[data-action="delete"]').addEventListener('click', () => handleDeleteApp(app));
       adminAppList.appendChild(row);
