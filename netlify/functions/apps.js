@@ -54,8 +54,25 @@ export default async (req) => {
 
   if (req.method === 'PUT') {
     const body = await req.json().catch(() => ({}));
-    if (!body.id) return jsonResponse({ error: 'id is required' }, { status: 400 });
     const apps = await loadApps(store);
+
+    // Reorder: body.order is a list of app ids in the desired order.
+    if (Array.isArray(body.order)) {
+      const byId = new Map(apps.map((a) => [a.id, a]));
+      const ordered = [];
+      for (const id of body.order) {
+        if (byId.has(id)) {
+          ordered.push(byId.get(id));
+          byId.delete(id);
+        }
+      }
+      // Anything not mentioned (e.g. an app added in another tab) keeps a place at the end.
+      for (const a of byId.values()) ordered.push(a);
+      await store.setJSON(KEY, ordered);
+      return jsonResponse({ apps: ordered });
+    }
+
+    if (!body.id) return jsonResponse({ error: 'id is required' }, { status: 400 });
     const idx = apps.findIndex((a) => a.id === body.id);
     if (idx === -1) return jsonResponse({ error: 'App not found' }, { status: 404 });
     apps[idx] = {
